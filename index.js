@@ -117,7 +117,6 @@ var api = {
                 var convertedValue = value._;
                 switch(value.$.Type) {
                     case 'DateTime': 
-                        console.log(convertedValue, api.parsePsaDate(convertedValue));
                         convertedValue = api.parsePsaDate(convertedValue);
                         break;
                     case 'Numeric': convertedValue = Number(convertedValue);
