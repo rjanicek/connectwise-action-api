@@ -121,7 +121,7 @@ var api = {
                         break;
                     case 'Numeric': convertedValue = Number(convertedValue);
                         break;
-                    case 'Boolean': convertedValue = convertedValue.toLowerCase() === 'true';
+                    case 'Boolean': convertedValue = convertedValue && convertedValue.toLowerCase() === 'true';
                         break;
                 }
                 previous[value.$.Name] = convertedValue;
@@ -149,8 +149,18 @@ var api = {
     },
 
     // Make a service ticket URL.
+    connectWiseUrl: function (psaServerHostName) {
+        return 'https://' + psaServerHostName;
+    },
+
+    // Make a service ticket URL.
     ticketUrl: function (psaServerHostName, psaCompanyName, ticketId) {
         return 'https://' + psaServerHostName + '/v4_6_release/services/system_io/Service/fv_sr100_request.rails?companyName=' + psaCompanyName + '&service_recid=' + ticketId;
+    },
+
+    // Hacky but at least gets you a page with some data.
+    activityUrl: function (psaServerHostName, activityId) {
+        return 'https://' + psaServerHostName + '/v4_6_release/contact/activity/default.rails?action=viewSOActivity&screenid=tm100&ac_flag=false&recordid=' + activityId;
     },
 
     configure: function (psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword) {
@@ -167,8 +177,9 @@ var api = {
         };
 
         configured.uploadDocumentToTicket = _.partial(api.uploadDocumentToTicket, psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword);
-
+        configured.connectWiseUrl = _.partial(api.connectWiseUrl, psaServerHostName);
         configured.ticketUrl = _.partial(api.ticketUrl, psaServerHostName, psaCompanyName);
+        configured.activityUrl = _.partial(api.activityUrl, psaServerHostName);
 
         return configured;
     }

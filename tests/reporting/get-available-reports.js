@@ -19,7 +19,7 @@ exports.get_available_reports = function (test) {
 	var options = {
 
 		 // true/false
-		 IncludeFields: false
+		 IncludeFields: true
 	};
 
 	api.action('GetAvailableReportsAction', options, function (error, result) {
