@@ -22,12 +22,12 @@ exports.get_available_reports = function (test) {
 		 IncludeFields: true
 	};
 
-	api.action('GetAvailableReportsAction', options, function (error, result) {
-		if (error) { console.error(error); }
-		test.ok(!error);
-		test.ok(result);
-		if (result) {
-		    console.log(util.inspect(result, {depth: null, colors: true}));
+	api.action('GetAvailableReportsAction', options, function (error, response) {
+		test.ok(!error, error);
+		test.ok(response);
+		if (response) {
+			var reports = api.normalizeGetAvailableReportsActionResponse(response);
+		    console.log(util.inspect(reports, {depth: null, colors: true}));
 		}
 		test.done();
 	});

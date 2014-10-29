@@ -19,18 +19,19 @@ exports.get_available_reports = function (test) {
 	var options = {
 
 		ReportName: 'Member',
-		Conditions: 'Member_RecID = 111',
+		Conditions: '',
 
 		// OrderBy: '',
 		// QueryTimeoutInSeconds: 100,
 		// Skip: 0,
-		Limit: 10
+		Limit: 2
 	};
 
 	api.action('RunReportQueryAction', options, function (error, result) {
 		test.ok(!error, error);
 		test.ok(result);
 		if (result) {
+			result = api.normalizeRunReportQueryActionResponse(result);
 		    console.log(util.inspect(result, {depth: null, colors: true}));
 		}
 		test.done();

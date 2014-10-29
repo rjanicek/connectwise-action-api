@@ -49,6 +49,12 @@ install
 npm install --save connectwise-action-api
 ```
 
+docs
+----
+
+[available reports and fields](./available-reports.md)
+
 ideas
 -----
-* Make it work with Node.js and Browser.
+* convert from request to hyperquest
+* make it work with Node.js and Browser

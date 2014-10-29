@@ -1,6 +1,6 @@
 {
   "name": "connectwise-action-api",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A thin Javascript layer for the ConnectWise XML Action API designed for Node.js.",
   "keywords": ["api", "connectwise"],
   "author": "Richard Janicek <r@janicek.co> (http://www.janicek.co)",
@@ -25,6 +25,7 @@
   },
   "scripts": {
     "test": "node test",
-    "clean": "node test-clean"
+    "clean": "node test-clean",
+    "make-docs": "node available-reports.js > available-reports.md"
   }
 }

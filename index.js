@@ -112,22 +112,29 @@ var api = {
     // RunReportQueryAction returns data like a can of silly string. This
     // function turns it into a nice array of JavaScript objects.
     normalizeRunReportQueryActionResponse: function (response) {
-        return api.normalizeCollection(response.RunReportQueryAction.Results).map(function (structuredData) {
-            return structuredData.Value.reduce(function (previous, value) {
-                var convertedValue = value._;
-                switch(value.$.Type) {
-                    case 'DateTime': 
-                        convertedValue = api.parsePsaDate(convertedValue);
-                        break;
-                    case 'Numeric': convertedValue = Number(convertedValue);
-                        break;
-                    case 'Boolean': convertedValue = convertedValue && convertedValue.toLowerCase() === 'true';
-                        break;
-                }
-                previous[value.$.Name] = convertedValue;
+        return api.normalizeCollection(response.RunReportQueryAction.Results).map(function (metaData) {
+            return metaData.Value.reduce(function (previous, metaValue) {
+                previous[metaValue.$.Name] = (function (value) { switch (metaValue.$.Type) {
+                    case 'DateTime': return api.parsePsaDate(value);
+                    case 'Numeric': return Number(value);
+                    case 'Boolean': return value && value.toLowerCase() === 'true';
+                }}(metaValue._));
                 return previous;
             }, {});
         });
+    },
+
+    normalizeGetAvailableReportsActionResponse: function (response) {
+        var normalizedReports = api.normalizeCollection(response.GetAvailableReportsAction.AvailableReports);
+        var reduced = normalizedReports.reduce(function (reports, report) {
+            reports[report.$.Name] = report.Field && report.Field.reduce(function (fields, field) {
+                fields[field.$.Name] = _.omit(field.$, 'Name');
+                return fields;
+            }, {});
+            return reports;
+        }, {});
+
+        return reduced;
     },
 
     // dateTime can be
