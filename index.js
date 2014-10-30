@@ -8,8 +8,11 @@ bitwise: true, camelcase: false, curly: true, eqeqeq: true, es3: true, evil: tru
 'use strict';
 
 var _ = require('lodash');
+var concat = require('concat-stream');
+var hq = require('hyperquest');
 var js2xmlparser = require('js2xmlparser');
 var parseString = require('xml2js').Parser({ explicitArray: false }).parseString;
+var qs = require('querystring');
 var request = require('request');
 
 var api = {
@@ -21,25 +24,29 @@ var api = {
     action: function (psaServerHostName, actionXml, returnErrorAndResult) {
         var uri = 'https://' + psaServerHostName + '/v4_6_release/services/system_io/integration_io/processclientaction.rails';
 
-        var requestOptions = {
-            method: 'POST',
-            uri: uri,
-            strictSSL: false,
-            form: { actionString : actionXml }
-        };
+        var req = hq.post(uri);
+        var errors = [];
+        req.setHeader('content-type', 'application/x-www-form-urlencoded');
+        req.pipe(concat({encoding: 'string'}, function (response) {
+            if (errors.length !== 0) {
+                errors.push(response);
+                returnErrorAndResult(errors);
+                return;
+            }
+            parseString(response, returnErrorAndResult);
+        }));
 
-        request(requestOptions, function (error, response, body) {
-            if (error) {
-                returnErrorAndResult(error);
-                return;
-            }
-        
+        req.on('response', function (response) {
             if (response.statusCode !== 200) {
-                returnErrorAndResult('response status code ' + response.statusCode + '\r\n' + body);
-                return;
+                errors.push('response status code ' + response.statusCode);
             }
-            parseString(body, returnErrorAndResult);
         });
+
+        req.on('error', function (error) {
+            errors.push(error);
+        });
+
+        req.end(qs.stringify({ actionString : actionXml }));
     },
 
     uploadDocumentToTicket: function (psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword, sRServiceRecID, fileName, fileBufferOrString, returnErrorAndResult) {
@@ -118,6 +125,7 @@ var api = {
                     case 'DateTime': return api.parsePsaDate(value);
                     case 'Numeric': return Number(value);
                     case 'Boolean': return value && value.toLowerCase() === 'true';
+                    default: return value;
                 }}(metaValue._));
                 return previous;
             }, {});
