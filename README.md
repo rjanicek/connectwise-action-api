@@ -56,5 +56,4 @@ docs
 
 ideas
 -----
-* convert from request to hyperquest
 * make it work with Node.js and Browser
