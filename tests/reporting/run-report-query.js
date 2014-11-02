@@ -5,7 +5,7 @@ bitwise: true, camelcase: false, curly: true, eqeqeq: true, es3: true, evil: tru
 
 'use strict';
 
-var config = require('../../test-config');
+var config = require('../../test-config-private');
 var util = require('util');
 
 var api = require('../../index').configure(
@@ -15,25 +15,43 @@ var api = require('../../index').configure(
 	config.INTEGRATION_PASSWORD
 );
 
-exports.get_available_reports = function (test) {
-	var options = {
+var options = {
 
-		ReportName: 'Member',
-		Conditions: '',
+	ReportName: 'Member',
+	Conditions: '',
 
-		// OrderBy: '',
-		// QueryTimeoutInSeconds: 100,
-		// Skip: 0,
-		Limit: 2
-	};
+	// OrderBy: '',
+	// QueryTimeoutInSeconds: 100,
+	// Skip: 0,
+	Limit: 2
+};
+
+exports.run_report_query_action_buffered = function (test) {
 
 	api.action('RunReportQueryAction', options, function (error, result) {
 		test.ok(!error, error);
 		test.ok(result);
 		if (result) {
-			result = api.normalizeRunReportQueryActionResponse(result);
+			result = api.normalizeRunReportQueryAction(result);
 		    console.log(util.inspect(result, {depth: null, colors: true}));
 		}
 		test.done();
 	});
+
+};
+
+exports.run_report_query_action_streaming = function (test) {
+
+	api.actionStream('RunReportQueryAction', '//Result', options)
+		.on('match', function (match) {
+			match = api.normalizeRunReportQueryActionResult(match.Result.Value);
+			console.log(util.inspect(match, {depth: null, colors: true}));
+		})
+		.on('error', function (error) {
+			test.ok(!error, error);
+		})
+		.on('end', function () {
+			test.done();
+		});
+
 };

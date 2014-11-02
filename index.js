@@ -9,11 +9,14 @@ bitwise: true, camelcase: false, curly: true, eqeqeq: true, es3: true, evil: tru
 
 var _ = require('lodash');
 var concat = require('concat-stream');
+var events = require('events');
 var hq = require('hyperquest');
 var js2xmlparser = require('js2xmlparser');
 var parseString = require('xml2js').Parser({ explicitArray: false }).parseString;
 var qs = require('querystring');
 var request = require('request');
+var sax = require('./sax-0.6.1.patched');
+var saxpath = require('saxpath');
 
 var api = {
     makeActionXml: function (actionName, actionData) {
@@ -21,33 +24,70 @@ var api = {
         return js2xmlparser(actionName, actionData, {declaration: {encoding: 'utf-16'}, attributeString: '$'});
     },
 
-    action: function (psaServerHostName, actionXml, returnErrorAndResult) {
+    // Send action request to server and stream back XML response.
+    actionXmlStream: function (psaServerHostName, actionXml) {
         var uri = 'https://' + psaServerHostName + '/v4_6_release/services/system_io/integration_io/processclientaction.rails';
 
         var req = hq.post(uri);
-        var errors = [];
         req.setHeader('content-type', 'application/x-www-form-urlencoded');
-        req.pipe(concat({encoding: 'string'}, function (response) {
-            if (errors.length !== 0) {
-                errors.push(response);
-                returnErrorAndResult(errors);
-                return;
-            }
-            parseString(response, returnErrorAndResult);
-        }));
-
-        req.on('response', function (response) {
-            if (response.statusCode !== 200) {
-                errors.push('response status code ' + response.statusCode);
-            }
-        });
-
-        req.on('error', function (error) {
-            errors.push(error);
-        });
-
         req.end(qs.stringify({ actionString : actionXml }));
+
+        return req;
     },
+
+    // Filter action results with xPath and stream results using event emitter
+    // api.
+    actionStream: function (psaServerHostName, actionXml, actionName, xPath) {
+        xPath = xPath || '//' + actionName;
+
+        var strict = true;
+        var saxParser = sax.createStream(strict, {entities: false});
+        var streamer = new saxpath.SaXPath(saxParser, xPath);
+        var objectEmitter = new events.EventEmitter();
+
+        streamer.on('match', function(xml) {
+            parseString(xml, function (error, match) {
+                error && objectEmitter.emit('error', error);
+                match && objectEmitter.emit('match', match);
+            });
+        });
+
+        var xmlStream = api.actionXmlStream(psaServerHostName, actionXml)
+            .on('response', function (response) {
+                if (response.statusCode !== 200) {
+                    xmlStream.pipe(concat({encoding: 'string'}, function (body) {
+                        objectEmitter.emit('error', 'http response status code ' + response.statusCode + '\n\n' + body);
+                    }));                    
+                    return;
+                }
+                xmlStream.pipe(saxParser);
+            })
+            .on('error', function (error) {
+                objectEmitter.emit('error', error);
+            })
+            .on('end', function () {
+                objectEmitter.emit('end');
+            });
+
+        return objectEmitter;
+    },
+
+    // Buffer action results and return with callback api. 
+    action: function (psaServerHostName, actionXml, actionName, returnErrorAndResult) {
+        var xmlStream = api.actionXmlStream(psaServerHostName, actionXml)
+            .on('response', function (response) {
+                xmlStream.pipe(concat({encoding: 'string'}, function (body) {
+                    if (response.statusCode !== 200) {
+                        returnErrorAndResult('http response status code ' + response.statusCode + '\n\n' + body);
+                        return;
+                    }
+                    parseString(body, returnErrorAndResult);
+                }));
+            })
+            .on('error', function (error) {
+                returnErrorAndResult(error);
+            });
+    },    
 
     uploadDocumentToTicket: function (psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword, sRServiceRecID, fileName, fileBufferOrString, returnErrorAndResult) {
         var mime = require('mime');
@@ -116,19 +156,21 @@ var api = {
         });
     },
 
-    // RunReportQueryAction returns data like a can of silly string. This
-    // function turns it into a nice array of JavaScript objects.
-    normalizeRunReportQueryActionResponse: function (response) {
-        return api.normalizeCollection(response.RunReportQueryAction.Results).map(function (metaData) {
-            return metaData.Value.reduce(function (previous, metaValue) {
-                previous[metaValue.$.Name] = (function (value) { switch (metaValue.$.Type) {
-                    case 'DateTime': return api.parsePsaDate(value);
-                    case 'Numeric': return Number(value);
-                    case 'Boolean': return value && value.toLowerCase() === 'true';
-                    default: return value;
-                }}(metaValue._));
-                return previous;
-            }, {});
+    normalizeRunReportQueryActionResult: function (result) {
+        return result.reduce(function (previous, metaValue) {
+            previous[metaValue.$.Name] = (function (value) { switch (metaValue.$.Type) {
+                case 'DateTime': return api.parsePsaDate(value);
+                case 'Numeric': return Number(value);
+                case 'Boolean': return value && value.toLowerCase() === 'true';
+                default: return value;
+            }}(metaValue._));
+            return previous;
+        }, {});
+    },    
+
+    normalizeRunReportQueryAction: function (metaData) {
+        return api.normalizeCollection(metaData.RunReportQueryAction.Results).map(function (metaData) {
+            return api.normalizeRunReportQueryActionResult(metaData.Value);
         });
     },
 
@@ -188,7 +230,17 @@ var api = {
                 IntegrationPassword: integrationPassword
             };
             var actionXml = api.makeActionXml(actionName, _.merge(actionData, defaultActionData));
-            api.action(psaServerHostName, actionXml, returnErrorAndResult);
+            api.action(psaServerHostName, actionXml, actionName, returnErrorAndResult);
+        };
+
+        configured.actionStream = function (actionName, xPath, actionData) {
+            var defaultActionData = {
+                CompanyName: psaCompanyName,
+                IntegrationLoginId: integrationLoginId,
+                IntegrationPassword: integrationPassword
+            };
+            var actionXml = api.makeActionXml(actionName, _.merge(actionData, defaultActionData));
+            return api.actionStream(psaServerHostName, actionXml, actionName, xPath);
         };
 
         configured.uploadDocumentToTicket = _.partial(api.uploadDocumentToTicket, psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword);

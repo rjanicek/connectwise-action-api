@@ -1,10 +1,11 @@
 connectwise-action-api
 ======================
 
-A thin Javascript layer for the ConnectWise XML Action API designed for Node.js.
+A thin high performance JavaScript layer for the ConnectWise XML Action API designed for Node.js.
 
-usage
------
+buffered usage
+--------------
+Buffer results and return with callback api. Optimized for smaller result sets. Entire response is buffered, then parsed into a JavaScript object.
 ```javascript
 var cw = require('connectwise-action-api').configure(
 	'SERVER HOST NAME',
@@ -22,6 +23,32 @@ cw.action('GetTicketAction', {
 	    console.dir(ticket);
 	}
 });
+```
+
+streaming usage
+---------------
+Stream results using event emitter api. Optimized for large result sets. Uses less memory. Matches can be processed immediately and asynchronously. No need to depend on server paging. Fewer server round trips. Each xPath match is parsed into a JavaScript object and emitted as an event.
+```javascript
+var cw = require('connectwise-action-api').configure(
+	'SERVER HOST NAME',
+	'COMPANY NAME',
+	'INTEGRATOR LOGIN ID',
+	'INTEGRATOR PASSWORD'
+);
+
+cw.actionStream('RunReportQueryAction', '//Result', {
+		ReportName: 'Schedule',
+		Limit: 100000
+	})
+	.on('match', function (match) {
+		console.dir(match);
+	})
+	.on('error', function (error) {
+		console.error(error);
+	})
+	.on('end', function () {
+		// all done
+	});
 ```
 
 tests
