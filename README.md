@@ -54,7 +54,7 @@ cw.actionStream('RunReportQueryAction', '//Result', {
 tests
 -----
 
-See `tests` directory for documentation and examples of API actions.
+See [`tests`](tests) directory for documentation and examples of API actions.
 Tests clean up after themselves.  
 * Configure tests in `test-config.js`
 * Run all tests: `node test`

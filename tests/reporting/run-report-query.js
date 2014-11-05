@@ -5,7 +5,7 @@ bitwise: true, camelcase: false, curly: true, eqeqeq: true, es3: true, evil: tru
 
 'use strict';
 
-var config = require('../../test-config-private');
+var config = require('../../test-config');
 var util = require('util');
 
 var api = require('../../index').configure(
