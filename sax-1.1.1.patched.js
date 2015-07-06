@@ -59,7 +59,8 @@ function SAXParser (strict, opt) {
   parser.strict = !!strict
   parser.noscript = !!(strict || parser.opt.noscript)
   parser.state = S.BEGIN
-  parser.ENTITIES = Object.create(sax.ENTITIES)
+  parser.strictEntities = parser.opt.strictEntities
+  parser.ENTITIES = parser.strictEntities ? Object.create(sax.XML_ENTITIES) : Object.create(sax.ENTITIES)
   parser.attribList = []
   parser.opt.entities = (typeof parser.opt.entities === 'undefined') ? true : parser.opt.entities;
 
@@ -308,7 +309,8 @@ function not (charclass, c) {
 
 var S = 0
 sax.STATE =
-{ BEGIN                     : S++
+{ BEGIN                     : S++ // leading byte order mark or whitespace
+, BEGIN_WHITESPACE          : S++ // leading whitespace
 , TEXT                      : S++ // general stuff
 , TEXT_ENTITY               : S++ // &amp and such.
 , OPEN_WAKA                 : S++ // <
@@ -343,6 +345,14 @@ sax.STATE =
 , CLOSE_TAG_SAW_WHITE       : S++ // </a   >
 , SCRIPT                    : S++ // <script> ...
 , SCRIPT_ENDING             : S++ // <script> ... <
+}
+
+sax.XML_ENTITIES =
+{ "amp" : "&"
+, "gt" : ">"
+, "lt" : "<"
+, "quot" : "\""
+, "apos" : "'"
 }
 
 sax.ENTITIES =
@@ -647,8 +657,11 @@ function error (parser, er) {
 }
 
 function end (parser) {
-  if (!parser.closedRoot) strictFail(parser, "Unclosed root tag")
-  if ((parser.state !== S.BEGIN) && (parser.state !== S.TEXT)) error(parser, "Unexpected end")
+  if (parser.sawRoot && !parser.closedRoot) strictFail(parser, "Unclosed root tag")
+  if ((parser.state !== S.BEGIN) &&
+      (parser.state !== S.BEGIN_WHITESPACE) &&
+      (parser.state !== S.TEXT))
+    error(parser, "Unexpected end")
   closeText(parser)
   parser.c = ""
   parser.closed = true
@@ -931,6 +944,13 @@ function write (chunk) {
     switch (parser.state) {
 
       case S.BEGIN:
+        parser.state = S.BEGIN_WHITESPACE
+        if (c === "\uFEFF") {
+          continue;
+        }
+      // no continue - fall through
+
+      case S.BEGIN_WHITESPACE:
         if (c === "<") {
           parser.state = S.OPEN_WAKA
           parser.startTagPosition = parser.position
@@ -958,7 +978,7 @@ function write (chunk) {
           }
           parser.textNode += chunk.substring(starti, i-1)
         }
-        if (c === "<") {
+        if (c === "<" && !(parser.sawRoot && parser.closedRoot && !parser.strict)) {
           parser.state = S.OPEN_WAKA
           parser.startTagPosition = parser.position
         } else {

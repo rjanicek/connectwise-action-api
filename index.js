@@ -15,7 +15,7 @@ var js2xmlparser = require('js2xmlparser');
 var parseString = require('xml2js').Parser({ explicitArray: false }).parseString;
 var qs = require('querystring');
 var request = require('request');
-var sax = require('./sax-0.6.1.patched');
+var sax = require('./sax-1.1.1.patched');
 var saxpath = require('saxpath');
 
 var api = {
