@@ -1,32 +1,32 @@
 /* jshint 
 browser: true, jquery: true, node: true,
-bitwise: true, camelcase: false, curly: true, eqeqeq: true, es3: true, evil: true, expr: true, forin: true, immed: true, indent: 4, latedef: true, newcap: true, noarg: true, noempty: true, nonew: true, quotmark: single, regexdash: true, strict: true, sub: true, trailing: true, undef: true, unused: vars, white: true
+bitwise: true, camelcase: false, curly: true, eqeqeq: true, esversion: 6, evil: true, expr: true, forin: true, immed: true, indent: 4, latedef: true, newcap: true, noarg: true, noempty: true, nonew: true, quotmark: single, regexdash: true, strict: true, sub: true, trailing: true, undef: true, unused: vars, white: true
 */
 
 // New 2.0 endpoint: /v4_6_release/apis/2.0/integration_io.asmx
 
 'use strict';
 
-var _ = require('lodash');
-var concat = require('concat-stream');
-var events = require('events');
-var hq = require('hyperquest');
-var js2xmlparser = require('js2xmlparser');
-var parseString = require('xml2js').Parser({ explicitArray: false }).parseString;
-var qs = require('querystring');
-var request = require('request');
-var sax = require('./sax-1.1.1.patched');
-var saxpath = require('saxpath');
+const _ = require('lodash');
+const concat = require('concat-stream');
+const events = require('events');
+const hq = require('hyperquest');
+const js2xmlparser = require('js2xmlparser');
+const parseString = require('xml2js').Parser({ explicitArray: false }).parseString;
+const qs = require('querystring');
+const request = require('request');
+const sax = require('./sax-1.2.1.patched');
+const saxpath = require('saxpath');
 
-var api = {
-    makeActionXml: function (actionName, actionData) {
+const api = {
+    makeActionXml (actionName, actionData) {
         actionData = _.merge(actionData, {$: { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance', 'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema' }});
         return js2xmlparser(actionName, actionData, {declaration: {encoding: 'utf-16'}, attributeString: '$'});
     },
 
     // Send action request to server and stream back XML response.
-    actionXmlStream: function (psaServerHostName, actionXml) {
-        var uri = 'https://' + psaServerHostName + '/v4_6_release/services/system_io/integration_io/processclientaction.rails';
+    actionXmlStream (psaServerHostName, actionXml) {
+        var uri = `https://${psaServerHostName}/v4_6_release/services/system_io/integration_io/processclientaction.rails`;
 
         var req = hq.post(uri);
         req.setHeader('content-type', 'application/x-www-form-urlencoded');
@@ -37,7 +37,7 @@ var api = {
 
     // Filter action results with xPath and stream results using event emitter
     // api.
-    actionStream: function (psaServerHostName, actionXml, actionName, xPath) {
+    actionStream (psaServerHostName, actionXml, actionName, xPath) {
         xPath = xPath || '//' + actionName;
 
         var strict = true;
@@ -45,24 +45,24 @@ var api = {
         var streamer = new saxpath.SaXPath(saxParser, xPath);
         var objectEmitter = new events.EventEmitter();
 
-        streamer.on('match', function(xml) {
-            parseString(xml, function (error, match) {
+        streamer.on('match', xml => {
+            parseString(xml, (error, match) => {
                 error && objectEmitter.emit('error', error);
                 match && objectEmitter.emit('match', match);
             });
         });
 
         var xmlStream = api.actionXmlStream(psaServerHostName, actionXml)
-            .on('response', function (response) {
+            .on('response', response => {
                 if (response.statusCode !== 200) {
-                    xmlStream.pipe(concat({encoding: 'string'}, function (body) {
-                        objectEmitter.emit('error', 'http response status code ' + response.statusCode + '\n\n' + body);
+                    xmlStream.pipe(concat({encoding: 'string'}, body => {
+                        objectEmitter.emit('error', `http response status code ${response.statusCode}\n\n${body}`);
                     }));                    
                     return;
                 }
                 xmlStream.pipe(saxParser);
             })
-            .on('error', function (error) {
+            .on('error', error => {
                 objectEmitter.emit('error', error);
             })
             .on('end', function () {
@@ -73,26 +73,24 @@ var api = {
     },
 
     // Buffer action results and return with callback api. 
-    action: function (psaServerHostName, actionXml, actionName, returnErrorAndResult) {
+    action (psaServerHostName, actionXml, actionName, returnErrorAndResult) {
         var xmlStream = api.actionXmlStream(psaServerHostName, actionXml)
             .on('response', function (response) {
-                xmlStream.pipe(concat({encoding: 'string'}, function (body) {
+                xmlStream.pipe(concat({encoding: 'string'}, body => {
                     if (response.statusCode !== 200) {
-                        returnErrorAndResult('http response status code ' + response.statusCode + '\n\n' + body);
+                        returnErrorAndResult(`http response status code ${response.statusCode}\n\n${body}`);
                         return;
                     }
                     parseString(body, returnErrorAndResult);
                 }));
             })
-            .on('error', function (error) {
-                returnErrorAndResult(error);
-            });
+            .on('error', error => returnErrorAndResult(error));
     },    
 
-    uploadDocumentToTicket: function (psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword, sRServiceRecID, fileName, fileBufferOrString, returnErrorAndResult) {
+    uploadDocumentToTicket (psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword, sRServiceRecID, fileName, fileBufferOrString, returnErrorAndResult) {
         var mime = require('mime');
 
-        var uri = 'https://' + psaServerHostName + '/v4_6_release/services/system_io/integration_io/uploaddocumenttoticket.aspx';
+        var uri = `https://${psaServerHostName}/v4_6_release/services/system_io/integration_io/uploaddocumenttoticket.aspx`;
 
         var requestOptions = {
             method: 'POST',
@@ -110,14 +108,14 @@ var api = {
             ]
         };
 
-        request(requestOptions, function (error, response, body) {
+        request(requestOptions, (error, response, body) => {
             if (error) {
                 returnErrorAndResult(error);
                 return;
             }
         
             if (response.statusCode !== 200) {
-                returnErrorAndResult('response status code ' + response.statusCode + '\r\n' + body);
+                returnErrorAndResult(`response status code ${response.statusCode}\r\n${body}`);
                 return;
             }
 
@@ -129,7 +127,7 @@ var api = {
     // Collections can be parsed as various different data types depending on
     // if they containe 0, 1 or many results. This function normalizes a
     // collection into an array.
-    normalizeCollection: function (collection) {
+    normalizeCollection (collection) {
         if (_.isString(collection)) {
             return [];
         }
@@ -149,16 +147,16 @@ var api = {
 
     // Necessary because FindPartnerTicketsAction does not return Id key.
     // Apparently this is fixed in API's 2.0
-    normalizeTicketsFromFindPartnerTicketsAction: function (tickets) {
-        return _.map(tickets, function (ticket) {
+    normalizeTicketsFromFindPartnerTicketsAction (tickets) {
+        return _.map(tickets, ticket => {
             ticket.Id = ticket.Id || ticket.SRServiceRecID;
             return ticket;
         });
     },
 
-    normalizeRunReportQueryActionResult: function (result) {
-        return result.reduce(function (previous, metaValue) {
-            previous[metaValue.$.Name] = (function (value) { switch (metaValue.$.Type) {
+    normalizeRunReportQueryActionResult (result) {
+        return result.reduce((previous, metaValue) => {
+            previous[metaValue.$.Name] = (value => { switch (metaValue.$.Type) {
                 case 'DateTime': return api.parsePsaDate(value);
                 case 'Numeric': return Number(value);
                 case 'Boolean': return value && value.toLowerCase() === 'true';
@@ -168,16 +166,16 @@ var api = {
         }, {});
     },    
 
-    normalizeRunReportQueryAction: function (metaData) {
-        return api.normalizeCollection(metaData.RunReportQueryAction.Results).map(function (metaData) {
+    normalizeRunReportQueryAction (metaData) {
+        return api.normalizeCollection(metaData.RunReportQueryAction.Results).map(metaData => {
             return api.normalizeRunReportQueryActionResult(metaData.Value);
         });
     },
 
-    normalizeGetAvailableReportsActionResponse: function (response) {
+    normalizeGetAvailableReportsActionResponse (response) {
         var normalizedReports = api.normalizeCollection(response.GetAvailableReportsAction.AvailableReports);
-        var reduced = normalizedReports.reduce(function (reports, report) {
-            reports[report.$.Name] = report.Field && report.Field.reduce(function (fields, field) {
+        var reduced = normalizedReports.reduce((reports, report) => {
+            reports[report.$.Name] = report.Field && report.Field.reduce((fields, field) => {
                 fields[field.$.Name] = _.omit(field.$, 'Name');
                 return fields;
             }, {});
@@ -195,7 +193,7 @@ var api = {
     //  '-0400'
     //  'GMT'
     //  'EST'
-    parsePsaDate: function (dateTime, optionalTimeZone) {
+    parsePsaDate (dateTime, optionalTimeZone) {
         if (typeof dateTime === 'undefined') {
             return dateTime;
         }
@@ -206,24 +204,24 @@ var api = {
     },
 
     // Make a service ticket URL.
-    connectWiseUrl: function (psaServerHostName) {
+    connectWiseUrl (psaServerHostName) {
         return 'https://' + psaServerHostName;
     },
 
     // Make a service ticket URL.
-    ticketUrl: function (psaServerHostName, psaCompanyName, ticketId) {
-        return 'https://' + psaServerHostName + '/v4_6_release/services/system_io/Service/fv_sr100_request.rails?companyName=' + psaCompanyName + '&service_recid=' + ticketId;
+    ticketUrl (psaServerHostName, psaCompanyName, ticketId) {
+        return `https://${psaServerHostName}/v4_6_release/services/system_io/Service/fv_sr100_request.rails?companyName=${psaCompanyName}&service_recid=${ticketId}`;
     },
 
     // Hacky but at least gets you a page with some data.
-    activityUrl: function (psaServerHostName, activityId) {
-        return 'https://' + psaServerHostName + '/v4_6_release/contact/activity/default.rails?action=viewSOActivity&screenid=tm100&ac_flag=false&recordid=' + activityId;
+    activityUrl (psaServerHostName, activityId) {
+        return `https://${psaServerHostName}/v4_6_release/contact/activity/default.rails?action=viewSOActivity&screenid=tm100&ac_flag=false&recordid=${activityId}`;
     },
 
-    configure: function (psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword) {
+    configure (psaServerHostName, psaCompanyName, integrationLoginId, integrationPassword) {
         var configured = _.clone(api);
 
-        configured.action = function (actionName, actionData, returnErrorAndResult) {
+        configured.action = (actionName, actionData, returnErrorAndResult) => {
             var defaultActionData = {
                 CompanyName: psaCompanyName,
                 IntegrationLoginId: integrationLoginId,
@@ -233,7 +231,7 @@ var api = {
             api.action(psaServerHostName, actionXml, actionName, returnErrorAndResult);
         };
 
-        configured.actionStream = function (actionName, xPath, actionData) {
+        configured.actionStream = (actionName, xPath, actionData) => {
             var defaultActionData = {
                 CompanyName: psaCompanyName,
                 IntegrationLoginId: integrationLoginId,

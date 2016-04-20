@@ -1,0 +1,34 @@
+From 17d0ec44974857a955a7f2769f4a74e1890f2c35 Mon Sep 17 00:00:00 2001
+From: rjanicek <rjanicek@connectwise.com>
+Date: Wed, 20 Apr 2016 11:00:12 -0400
+Subject: [PATCH] add ignore entities option
+
+---
+ lib/sax.js | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/lib/sax.js b/lib/sax.js
+index f125c5f..800ffe7 100644
+--- a/lib/sax.js
++++ b/lib/sax.js
+@@ -63,6 +63,7 @@
+     parser.strictEntities = parser.opt.strictEntities
+     parser.ENTITIES = parser.strictEntities ? Object.create(sax.XML_ENTITIES) : Object.create(sax.ENTITIES)
+     parser.attribList = []
++    parser.opt.entities = (typeof parser.opt.entities === 'undefined') ? true : parser.opt.entities;
+ 
+     // namespaces form a prototype chain.
+     // it always points at the current tag,
+@@ -925,6 +926,9 @@
+   }
+ 
+   function parseEntity (parser) {
++    if (!parser.opt.entities) {
++      return '&' + parser.entity + ';';
++    }
+     var entity = parser.entity
+     var entityLC = entity.toLowerCase()
+     var num
+-- 
+2.7.2.windows.1
+
