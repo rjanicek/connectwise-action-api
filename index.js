@@ -161,7 +161,7 @@ const api = {
                 case 'Numeric': return Number(value);
                 case 'Boolean': return value && value.toLowerCase() === 'true';
                 default: return value;
-            }}(metaValue._));
+            }})(metaValue._);
             return previous;
         }, {});
     },    

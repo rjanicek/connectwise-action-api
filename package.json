@@ -1,6 +1,6 @@
 {
   "name": "connectwise-action-api",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A thin high performance JavaScript layer for the ConnectWise XML Action API designed for Node.js.",
   "keywords": [
     "api",
