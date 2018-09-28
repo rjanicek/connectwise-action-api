@@ -21,7 +21,7 @@ const saxpath = require('saxpath');
 const api = {
     makeActionXml (actionName, actionData) {
         actionData = _.merge(actionData, {$: { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance', 'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema' }});
-        return js2xmlparser(actionName, actionData, {declaration: {encoding: 'utf-16'}, attributeString: '$'});
+        return js2xmlparser.parse(actionName, actionData, {declaration: {encoding: 'utf-16'}, attributeString: '$'});
     },
 
     // Send action request to server and stream back XML response.
@@ -104,7 +104,7 @@ const api = {
                 {'Content-Disposition' : 'form-data; name="IntegrationLoginId"', body: integrationLoginId },
                 {'Content-Disposition' : 'form-data; name="IntegrationPassword"', body: integrationPassword },
                 {'Content-Disposition' : 'form-data; name="SRServiceRecID"', body: sRServiceRecID },
-                {'Content-Disposition' : 'form-data; name="file"; filename="' + fileName + '"', 'Content-Type' : mime.lookup(fileName), body: fileBufferOrString}
+                {'Content-Disposition' : 'form-data; name="file"; filename="' + fileName + '"', 'Content-Type' : mime.getType(fileName), body: fileBufferOrString}
             ]
         };
 

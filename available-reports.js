@@ -30,7 +30,7 @@ function sortAvailableReports(normalizedReports) {
 
 function markdownAvailableReports(normalizedReports) {
     return _.reduce(normalizedReports, function (markdown, fields, reportName) {
-        markdown += '####' + reportName + '\r\n';
+        markdown += '#### ' + reportName + '\r\n';
         markdown += '|             |             |     |\r\n' +
                     '|-------------|-------------|-----|\r\n';
         markdown += _.reduce(fields, function (markdown, attributes, fieldName) {
@@ -45,7 +45,7 @@ api.action('GetConnectWiseVersionAction', {}, function (error, result) {
 	error && console.error(error);
 	if (!result) { return; }
 	
-	console.log('###Available Reports for ConnectWise ' + result.GetConnectWiseVersionAction.CwVersionInfo.Version);
+	console.log('### Available Reports for ConnectWise ' + result.GetConnectWiseVersionAction.CwVersionInfo.Version);
 	console.log('---');
 
 	api.action('GetAvailableReportsAction', { IncludeFields: true }, function (error, response) {

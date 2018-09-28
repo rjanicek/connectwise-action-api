@@ -31,7 +31,7 @@ exports.make_new_ticket = function (test) {
 			// Group Id) should be retrieved from CompanyMgmt report
 			// (Reporting API) - Please Note: Company API does not return the
 			// Managed Id.
- 			ManagedId: null,
+ 			// ManagedId: null,
 
  			// The company id in the PSA database. If this is filled in, the
  			// managed id must be left blank. If this cannot match up against

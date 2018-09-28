@@ -22,7 +22,7 @@ exports.knowledge_base_search = function (test) {
  		SearchType: 'All',	// Any or All or Exact
 
  		SearchTerms: 'knowledge',	// Specific text for search
- 		SearchStart: '2013-08-08T13:00:00.000-05:00',	// only search tickets since this date
+        SearchStart: new Date().toISOString(),	// only search tickets since this date
  		// CompanyRecID: 0,	// only search tickets for this company
  		Limit: 10,
  		Skip: 0
