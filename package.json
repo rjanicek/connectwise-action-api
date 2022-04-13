@@ -15,7 +15,7 @@
   },
   "main": "index.js",
   "dependencies": {
-    "async": "3.0.1",
+    "async": "3.2.2",
     "concat-stream": "2.0.0",
     "hyperquest": "2.1.3",
     "js2xmlparser": "4.0.0",
